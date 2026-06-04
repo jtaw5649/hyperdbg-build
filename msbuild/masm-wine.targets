@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)$(MSBuildThisFileName).xml" />
+    <AvailableItemName Include="MASM">
+      <Targets>_MASM</Targets>
+    </AvailableItemName>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <ComputeLinkInputsTargets>$(ComputeLinkInputsTargets);ComputeMASMOutput</ComputeLinkInputsTargets>
+    <ComputeLibInputsTargets>$(ComputeLibInputsTargets);ComputeMASMOutput</ComputeLibInputsTargets>
+  </PropertyGroup>
+
+  <Target Name="_MASM" BeforeTargets="$(MASMBeforeTargets)" AfterTargets="$(MASMAfterTargets)" Condition="'@(MASM)' != ''">
+    <Message Importance="High" Text="Using preassembled MASM objects; skipping XamlTaskFactory MASM task." />
+  </Target>
+
+  <Target Name="ComputeMASMOutput" Condition="'@(MASM)' != ''">
+    <ItemGroup>
+      <Link Include="@(MASM-&gt;Metadata('ObjectFileName')-&gt;Distinct()-&gt;ClearMetadata())" Condition="'%(MASM.ExcludedFromBuild)' != 'true'" />
+      <Lib Include="@(MASM-&gt;Metadata('ObjectFileName')-&gt;Distinct()-&gt;ClearMetadata())" Condition="'%(MASM.ExcludedFromBuild)' != 'true'" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="ComputeMASMObj" Condition="'@(MASM)' != ''" BeforeTargets="GetResolvedLinkObjs">
+    <ItemGroup>
+      <Obj Include="@(MASM-&gt;Metadata('ObjectFileName')-&gt;Distinct()-&gt;ClearMetadata())" Condition="'%(MASM.ExcludedFromBuild)' != 'true'" />
+    </ItemGroup>
+  </Target>
+</Project>

@@ -1,0 +1,9 @@
+/target/
+/out/
+.env
+.env.*
+*.log
+*.exe
+*.dll
+*.sys
+*.pdb
