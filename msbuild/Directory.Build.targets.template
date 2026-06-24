@@ -1,5 +1,67 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <HyperDbgNuGetSdkRoot>$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.10.0.28000.1839\c\</HyperDbgNuGetSdkRoot>
+    <HyperDbgNuGetSdkLibRoot>$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.x64.10.0.28000.1839\c\</HyperDbgNuGetSdkLibRoot>
+    <HyperDbgNuGetSdkIncludes>$(HyperDbgNuGetSdkRoot)Include\10.0.28000.0\shared;$(HyperDbgNuGetSdkRoot)Include\10.0.28000.0\ucrt;$(HyperDbgNuGetSdkRoot)Include\10.0.28000.0\um</HyperDbgNuGetSdkIncludes>
+    <HyperDbgNuGetUserLibs>$(HyperDbgNuGetSdkLibRoot)um\x64;$(HyperDbgNuGetSdkLibRoot)ucrt\x64</HyperDbgNuGetUserLibs>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(IsKernelModeToolset)' == 'true'">
+    <HyperDbgNuGetWdkRoot>$(SolutionDir)packages\Microsoft.Windows.WDK.x64.10.0.28000.1839\c\</HyperDbgNuGetWdkRoot>
+    <HyperDbgNuGetWdkIncludes>$(HyperDbgNuGetWdkRoot)Include\10.0.28000.0\km;$(HyperDbgNuGetWdkRoot)Include\10.0.28000.0\km\crt;$(HyperDbgNuGetWdkRoot)Include\10.0.28000.0\shared;$(HyperDbgNuGetWdkRoot)Include\wdf\kmdf\1.15</HyperDbgNuGetWdkIncludes>
+    <HyperDbgNuGetKernelLibs>$(HyperDbgNuGetWdkRoot)Lib\10.0.28000.0\km\x64;$(HyperDbgNuGetWdkRoot)Lib\wdf\kmdf\x64\1.15;$(HyperDbgNuGetUserLibs)</HyperDbgNuGetKernelLibs>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(IsKernelModeToolset)' == 'true' and '$(ConfigurationType)' == 'Driver'">
+    <LinkCompiled>true</LinkCompiled>
+    <TargetExt>.sys</TargetExt>
+    <TargetFileName>$(TargetName)$(TargetExt)</TargetFileName>
+    <TargetPath>$(OutDir)$(TargetFileName)</TargetPath>
+    <OutputType>sys</OutputType>
+    <IsDriver>true</IsDriver>
+  </PropertyGroup>
+
+  <ItemDefinitionGroup Condition="'$(PlatformToolset)' == 'v143' and '$(IsKernelModeToolset)' != 'true'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(HyperDbgNuGetSdkIncludes);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>$(HyperDbgNuGetUserLibs);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <ItemDefinitionGroup Condition="'$(IsKernelModeToolset)' == 'true'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(HyperDbgNuGetWdkIncludes);$(HyperDbgNuGetSdkIncludes);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_WIN64;_AMD64_;AMD64;DEPRECATE_DDK_FUNCTIONS=1;MSC_NOOPT;KMDF_VERSION_MAJOR=1;KMDF_VERSION_MINOR=15;MAXULONG64=0xffffffffffffffffULL;MAXDWORD64=0xffffffffffffffffULL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <DisableSpecificWarnings>4312;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <SupportJustMyCode>false</SupportJustMyCode>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <AdditionalOptions>/kernel %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>$(HyperDbgNuGetKernelLibs);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>/kernel /INCREMENTAL:NO /IGNORE:4257 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalDependencies>%(AdditionalDependencies);BufferOverflowFastFailK.lib;ntoskrnl.lib;hal.lib;wmilib.lib;libcntpr.lib;WdfLdr.lib;WdfDriverEntry.lib</AdditionalDependencies>
+      <LinkIncremental>false</LinkIncremental>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <ItemDefinitionGroup Condition="'$(IsKernelModeToolset)' == 'true' and '$(ConfigurationType)' == 'Driver'">
+    <Link>
+      <AdditionalDependencies>$(IntDir)AsmDebugger.obj;$(SolutionDir)build\bin\$(Configuration)\hyperlog.lib;$(SolutionDir)build\bin\$(Configuration)\hyperhv.lib;$(SolutionDir)build\bin\$(Configuration)\kdserial.lib;$(SolutionDir)build\bin\$(Configuration)\hypertrace.lib;BufferOverflowFastFailK.lib;ntoskrnl.lib;hal.lib;wmilib.lib;libcntpr.lib;WdfLdr.lib;WdfDriverEntry.lib</AdditionalDependencies>
+      <DataExecutionPrevention></DataExecutionPrevention>
+      <Driver>Driver</Driver>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
+      <OmitDefaultLibName>true</OmitDefaultLibName>
+      <RandomizedBaseAddress></RandomizedBaseAddress>
+      <SubSystem>Native</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+
   <PropertyGroup Condition="'$(MSBuildProjectName)' == 'script-engine'">
     <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
   </PropertyGroup>

@@ -8,6 +8,7 @@ use crate::fsutil::{copy_dir_recursive, require_dir};
 
 pub(crate) fn prepare_msbuild_workarounds(env: &BuildEnv) -> Result<()> {
     generate_vc_targets_overlay(env)?;
+    generate_force_import_before_cpp_props(env)?;
     generate_directory_build_targets(env)?;
     Ok(())
 }
@@ -45,10 +46,29 @@ pub(crate) fn generate_directory_build_targets(env: &BuildEnv) -> Result<()> {
     Ok(())
 }
 
+pub(crate) fn generate_force_import_before_cpp_props(env: &BuildEnv) -> Result<()> {
+    let source = env
+        .helper_root
+        .join("msbuild/ForceImportBeforeCppProps.props.template");
+    let dest = force_import_before_cpp_props_path(env);
+    let parent = dest
+        .parent()
+        .ok_or_else(|| anyhow!("ForceImportBeforeCppProps path has no parent: {dest}"))?;
+    fs::create_dir_all(parent.as_std_path())
+        .with_context(|| format!("failed to create {parent}"))?;
+    fs::copy(source.as_std_path(), dest.as_std_path())
+        .with_context(|| format!("failed to generate {dest}"))?;
+    Ok(())
+}
+
 pub(crate) fn vc_targets_overlay_path(env: &BuildEnv) -> Utf8PathBuf {
     env.out_dir.join("msbuild/v170-overlay")
 }
 
 pub(crate) fn directory_build_targets_path(env: &BuildEnv) -> Utf8PathBuf {
     env.out_dir.join("msbuild/Directory.Build.targets")
+}
+
+pub(crate) fn force_import_before_cpp_props_path(env: &BuildEnv) -> Utf8PathBuf {
+    env.out_dir.join("msbuild/ForceImportBeforeCppProps.props")
 }

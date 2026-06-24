@@ -11,11 +11,13 @@ use crate::fsutil::run_id;
 
 pub(crate) mod asm;
 mod msbuild;
+mod packages;
 mod stage;
 mod workarounds;
 
 use asm::preassemble_asm;
 use msbuild::build_msbuild_target;
+use packages::restore_packages;
 use stage::{copy_script_engine_scripts, stage_artifacts};
 use workarounds::prepare_msbuild_workarounds;
 
@@ -64,6 +66,7 @@ pub(crate) fn run(env: &BuildEnv, args: BuildArgs) -> Result<()> {
         .with_context(|| format!("failed to create {log_dir}"))?;
     println!("run: {run_id}");
     println!("logs: {log_dir}");
+    restore_packages(env, &log_dir)?;
 
     match args.command {
         BuildCommand::Hyperevade(config) => {
@@ -136,7 +139,26 @@ pub(crate) fn ensure_allowed_target(target: &str) -> Result<()> {
 }
 
 pub(super) fn target_needs_workarounds(target: &str) -> bool {
-    target == "script-engine" || target_may_build_masm(target)
+    target_uses_legacy_msvc_toolset(target) || target_uses_kernel_toolset(target)
+}
+
+pub(super) fn target_uses_kernel_toolset(target: &str) -> bool {
+    matches!(
+        target,
+        "hyperlog" | "kdserial" | "hypertrace" | "hyperevade" | "hyperhv" | "hyperkd"
+    )
+}
+
+pub(super) fn target_uses_legacy_msvc_toolset(target: &str) -> bool {
+    matches!(
+        target,
+        "pdbex"
+            | "symbol-parser"
+            | "script-engine"
+            | "libhyperdbg"
+            | "hyperdbg-test"
+            | "hyperdbg-cli"
+    )
 }
 
 pub(super) fn target_may_build_masm(target: &str) -> bool {
@@ -160,5 +182,13 @@ mod tests {
         assert!(debug_targets.contains(&"hyperdbg-test"));
         assert!(!release_targets.contains(&"hyperdbg-test"));
         assert!(release_targets.contains(&"hyperdbg-cli"));
+    }
+
+    #[test]
+    fn legacy_msvc_targets_use_workarounds() {
+        assert!(target_needs_workarounds("pdbex"));
+        assert!(target_needs_workarounds("hyperlog"));
+        assert!(target_needs_workarounds("hyperdbg-cli"));
+        assert!(target_needs_workarounds("hyperkd"));
     }
 }
